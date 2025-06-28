@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solana Validator Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="text-white p-6 shadow-lg text-center text-3xl font-extrabold tracking-wide">
+    Solana Validator Dashboard
+  </header>
+
+  <!-- Main content -->
+  <main class="flex-grow max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-lg mt-8 mb-8">
+    <section class="mb-6 grid grid-cols-2 gap-8 text-gray-700 font-semibold text-lg">
+      <div>
+        Node: <span id="node" class="text-indigo-600">Loading...</span>
+      </div>
+      <div>
+        Status: <span id="status" class="text-green-600">Loading...</span>
+      </div>
+      <div>
+        Slot: <span id="slot" class="text-indigo-600">Loading...</span>
+      </div>
+      <div>
+        Uptime: <span id="uptime" class="text-indigo-600">Loading...</span>
+      </div>
+    </section>
+
+    <!-- Chart container -->
+    <section>
+      <canvas id="slotChart" class="w-full h-48"></canvas>
+    </section>
+
+    <!-- Refresh button -->
+    <section class="mt-6 text-center">
+      <button
+        id="refreshBtn"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow-md transition"
+      >
+        Refresh Data
+      </button>
+    </section>
+  </main>
+
+  <footer class="text-center text-white mb-4">
+    &copy; 2025 Solana Validator Dashboard
+  </footer>
+
+<script>
+  const ctx = document.getElementById('slotChart').getContext('2d');
+  const slotData = {
+    labels: [],
+    datasets: [{
+      label: 'Slot progression',
+      data: [],
+      fill: false,
+      borderColor: 'rgba(99, 102, 241, 1)',
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 6
+    }]
+  };
+  const slotChart = new Chart(ctx, {
+    type: 'line',
+    data: slotData,
+    options: {
+      animation: false,
+      responsive: true,
+      scales: {
+        x: {
+          title: { display: true, text: 'Refresh count' }
+        },
+        y: {
+          title: { display: true, text: 'Slot number' }
+        }
+      }
+    }
+  });
+
+  let refreshCount = 0;
+
+  async function fetchValidatorData() {
+    try {
+      const res = await fetch('/validator-status');
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+
+      document.getElementById('node').textContent = data.node;
+      document.getElementById('status').textContent = data.status;
+      document.getElementById('slot').textContent = data.slot;
+      document.getElementById('uptime').textContent = data.uptime;
+
+      refreshCount++;
+      slotData.labels.push(refreshCount);
+      slotData.datasets[0].data.push(data.slot);
+
+      if (slotData.labels.length > 20) {
+        slotData.labels.shift();
+        slotData.datasets[0].data.shift();
+      }
+      slotChart.update();
+
+    } catch (e) {
+      document.getElementById('status').textContent = 'Error loading data';
+      console.error(e);
+    }
+  }
+
+  fetchValidatorData();
+
+  document.getElementById('refreshBtn').addEventListener('click', fetchValidatorData);
+</script>
+
+</body>
+</html>
+
