@@ -4,19 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Solana Validator Dashboard</title>
-  <!-- Link local CSS -->
   <link rel="stylesheet" href="/static/css/style.css" />
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Simplu stil pentru cercul de status */
+    #statusIndicator {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      margin-left: 10px;
+      vertical-align: middle;
+      background-color: gray;
+    }
+    /* Stil pentru toggle auto-refresh */
+    #autoRefreshToggle {
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header>
-    Solana Validator Dashboard
-  </header>
+  <header>Solana Validator Dashboard</header>
 
-  <!-- Main content -->
   <main>
     <section class="status-grid">
       <div>
@@ -24,6 +35,7 @@
       </div>
       <div>
         Status: <span id="status" class="text-green-600">Loading...</span>
+        <span id="statusIndicator"></span>
       </div>
       <div>
         Slot: <span id="slot" class="text-indigo-600">Loading...</span>
@@ -31,26 +43,25 @@
       <div>
         Uptime: <span id="uptime" class="text-indigo-600">Loading...</span>
       </div>
+      <div>
+        Last Updated: <span id="lastUpdated">Never</span>
+      </div>
+      <div>
+        Auto Refresh: 
+        <input type="checkbox" id="autoRefreshToggle" checked />
+      </div>
     </section>
 
-    <!-- Chart container -->
     <section>
       <canvas id="slotChart"></canvas>
     </section>
 
-    <!-- Refresh button -->
     <section class="mt-6 text-center">
-      <button
-        id="refreshBtn"
-      >
-        Refresh Data
-      </button>
+      <button id="refreshBtn">Refresh Data</button>
     </section>
   </main>
 
-  <footer>
-    &copy; 2025 Solana Validator Dashboard
-  </footer>
+  <footer>&copy; 2025 Solana Validator Dashboard</footer>
 
 <script>
   const ctx = document.getElementById('slotChart').getContext('2d');
@@ -84,6 +95,16 @@
   });
 
   let refreshCount = 0;
+  let autoRefreshInterval;
+
+  function updateStatusIndicator(status) {
+    const indicator = document.getElementById('statusIndicator');
+    if (status.toLowerCase() === 'online') {
+      indicator.style.backgroundColor = 'green';
+    } else {
+      indicator.style.backgroundColor = 'red';
+    }
+  }
 
   async function fetchValidatorData() {
     try {
@@ -93,8 +114,12 @@
 
       document.getElementById('node').textContent = data.node;
       document.getElementById('status').textContent = data.status;
+      updateStatusIndicator(data.status);
       document.getElementById('slot').textContent = data.slot;
       document.getElementById('uptime').textContent = data.uptime;
+
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
 
       refreshCount++;
       slotData.labels.push(refreshCount);
@@ -108,13 +133,35 @@
 
     } catch (e) {
       document.getElementById('status').textContent = 'Error loading data';
+      updateStatusIndicator('offline');
       console.error(e);
     }
   }
 
-  fetchValidatorData();
+  function startAutoRefresh() {
+    autoRefreshInterval = setInterval(() => {
+      if(document.getElementById('autoRefreshToggle').checked) {
+        fetchValidatorData();
+      }
+    }, 10000); // every 10 seconds
+  }
+
+  function stopAutoRefresh() {
+    clearInterval(autoRefreshInterval);
+  }
 
   document.getElementById('refreshBtn').addEventListener('click', fetchValidatorData);
+
+  document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+    if(e.target.checked) {
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+  });
+
+  fetchValidatorData();
+  startAutoRefresh();
 </script>
 
 </body>
